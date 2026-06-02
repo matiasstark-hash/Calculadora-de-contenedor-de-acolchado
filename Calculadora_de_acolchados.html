@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Acolchados</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #2d3748; min-height: 100vh; padding: 24px 16px; font-size: 17px; }
+  h1 { text-align: center; font-size: 1.6rem; color: #2b6cb0; margin-bottom: 24px; letter-spacing: 0.5px; }
+  h2 { font-size: 1.1rem; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 0.9rem; font-weight: 600; color: #718096; }
+  input[type=number], input[type=text] {
+    border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;
+    font-size: 1rem; color: #2d3748; transition: border 0.2s; width: 100%;
+  }
+  input:focus { outline: none; border-color: #4299e1; }
+  .rolls-header { display: grid; grid-template-columns: 1fr 1fr 36px; gap: 10px; margin-bottom: 6px; }
+  .rolls-header span { font-size: 0.9rem; font-weight: 600; color: #718096; }
+  .roll-row { display: grid; grid-template-columns: 1fr 1fr 36px; gap: 10px; margin-bottom: 8px; align-items: center; }
+  .btn-remove { background: #fed7d7; border: none; border-radius: 8px; width: 36px; height: 36px; cursor: pointer; font-size: 1.1rem; color: #c53030; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+  .btn-remove:hover { background: #fc8181; color: white; }
+  .btn-add { background: #ebf8ff; border: 2px dashed #90cdf4; border-radius: 8px; padding: 10px; cursor: pointer; font-size: 1rem; color: #2b6cb0; font-weight: 600; width: 100%; transition: background 0.2s; margin-top: 4px; }
+  .btn-add:hover { background: #bee3f8; }
+  .btn-calc { background: #2b6cb0; color: white; border: none; border-radius: 10px; padding: 14px; font-size: 1.1rem; font-weight: 700; width: 100%; cursor: pointer; transition: background 0.2s; margin-top: 4px; letter-spacing: 0.5px; }
+  .btn-calc:hover { background: #2c5282; }
+  .results { display: none; }
+  .results.visible { display: block; }
+  .result-table { width: 100%; border-collapse: collapse; font-size: 1rem; table-layout: fixed; }
+  .result-table th { background: #ebf8ff; color: #2b6cb0; padding: 9px 10px; text-align: left; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  .result-table td { padding: 9px 10px; border-bottom: 1px solid #f0f4f8; }
+  .result-table tr:last-child td { border-bottom: none; }
+  .result-table tr:hover td { background: #f7fafc; }
+  .total-row td { font-weight: 700; background: #f0f4f8 !important; color: #2b6cb0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; }
+  .badge-twin { background: #e9d8fd; color: #553c9a; }
+  .badge-queen { background: #c6f6d5; color: #276749; }
+  .badge-king { background: #feebc8; color: #c05621; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .summary-box { background: #f7fafc; border-radius: 10px; padding: 14px; text-align: center; }
+  .summary-box .val { font-size: 1.8rem; font-weight: 800; color: #2b6cb0; }
+  .summary-box .lbl { font-size: 0.85rem; color: #718096; margin-top: 2px; }
+  .error { color: #c53030; font-size: 0.95rem; margin-top: 6px; display: none; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 14px 0; }
+  .pct-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .pct-field { display: flex; flex-direction: column; gap: 4px; }
+  .bulto-btns { display: flex; gap: 4px; margin-top: 5px; }
+  .bulto-btn { border: 1.5px solid #e2e8f0; background: #f7fafc; border-radius: 6px; padding: 3px 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer; color: #4a5568; transition: all 0.15s; }
+  .bulto-btn.active { border-color: #2b6cb0; background: #2b6cb0; color: white; }
+  .bulto-btn:hover:not(.active) { background: #ebf8ff; border-color: #90cdf4; }
+  .suma-pct { font-size: 0.95rem; font-weight: 700; margin-top: 14px; text-align: left; }
+  .suma-ok { color: #276749; }
+  .suma-err { color: #c53030; }
+  .sub { font-size: 0.8rem; color: #a0aec0; display: block; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<h1>🧵 Calculadora de Acolchados</h1>
+
+<div class="card">
+  <h2>Parámetros de Tela</h2>
+  <div class="grid-3">
+    <div class="field"><label>Peso tela (g/m²)</label><input type="number" id="pesoM2" value="300" min="1"></div>
+    <div class="field"><label>Ancho tela (m)</label><input type="number" id="anchoTela" value="2.6" step="0.1" min="0.1"></div>
+    <div class="field"><label>Merma (%)</label><input type="number" id="merma" value="12" min="0" max="100"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Tamaños de Acolchados (m)</h2>
+  <p style="font-size:0.9rem;color:#718096;margin-bottom:10px;">Solo se configura el largo. El ancho = ancho de tela.</p>
+  <div class="grid-3">
+    <div class="field"><label>Twin — largo (m)</label><input type="number" id="twinL" value="1.6" step="0.1" min="0.1"></div>
+    <div class="field"><label>Queen — largo (m)</label><input type="number" id="queenL" value="2.6" step="0.1" min="0.1"></div>
+    <div class="field"><label>King — largo (m)</label><input type="number" id="kingL" value="2.7" step="0.1" min="0.1"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Distribución por Tamaño</h2>
+  <div class="pct-row">
+    <div class="pct-field">
+      <label>Twin (%)</label>
+      <input type="number" id="pctTwin" value="30" min="0" max="100" oninput="updSuma()">
+      <div class="bulto-btns" id="btnsTwin"></div>
+    </div>
+    <div class="pct-field">
+      <label>Queen (%)</label>
+      <input type="number" id="pctQueen" value="60" min="0" max="100" oninput="updSuma()">
+      <div class="bulto-btns" id="btnsQueen"></div>
+    </div>
+    <div class="pct-field">
+      <label>King (%)</label>
+      <input type="number" id="pctKing" value="10" min="0" max="100" oninput="updSuma()">
+      <div class="bulto-btns" id="btnsKing"></div>
+    </div>
+  </div>
+  <div class="error" id="errPct">⚠ Los porcentajes deben sumar 100%.</div>
+  <div class="suma-pct" id="sumaPct"></div>
+</div>
+
+<div class="card">
+  <h2>Rollos por Color</h2>
+  <div class="rolls-header"><span>Color</span><span>Peso total (kg)</span><span></span></div>
+  <div id="rollsCont"></div>
+  <button class="btn-add" onclick="addRoll()">+ Agregar color</button>
+</div>
+
+<button class="btn-calc" onclick="calcular()">CALCULAR</button>
+
+<div class="results card" id="results" style="margin-top:16px;">
+  <h2>Resultados</h2>
+  <div class="summary-grid">
+    <div class="summary-box"><div class="val" id="totTw">—</div><div class="lbl">Twin</div></div>
+    <div class="summary-box"><div class="val" id="totQu">—</div><div class="lbl">Queen</div></div>
+    <div class="summary-box"><div class="val" id="totKi">—</div><div class="lbl">King</div></div>
+  </div>
+  <div style="text-align:center; background:#2b6cb0; border-radius:10px; padding:16px; margin-bottom:16px;">
+    <div style="font-size:0.9rem; color:#bee3f8; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Total Acolchados</div>
+    <div id="totGen" style="font-size:3rem; font-weight:900; color:white; line-height:1.1;">—</div>
+  </div>
+  <hr>
+  <table class="result-table">
+    <thead>
+      <tr>
+        <th style="width:22%">Color</th>
+        <th style="width:13%">Peso (kg)</th>
+        <th style="width:12%">Total</th>
+        <th style="width:18%"><span class="badge badge-twin">Twin</span></th>
+        <th style="width:18%"><span class="badge badge-queen">Queen</span></th>
+        <th style="width:17%"><span class="badge badge-king">King</span></th>
+      </tr>
+    </thead>
+    <tbody id="resTbody"></tbody>
+  </table>
+</div>
+
+<script>
+  let rc=0, bultoTw=5, bultoQu=4, bultoKi=3;
+
+  function buildBtns() {
+    function r(cid, cur, setter) {
+      const c = document.getElementById(cid);
+      c.innerHTML='';
+      [5,4,3].forEach(v => {
+        const b = document.createElement('button');
+        b.className='bulto-btn'+(v===cur?' active':'');
+        b.textContent='x'+v;
+        b.onclick=()=>{ setter(v); buildBtns(); };
+        c.appendChild(b);
+      });
+    }
+    r('btnsTwin',  bultoTw, v=>bultoTw=v);
+    r('btnsQueen', bultoQu, v=>bultoQu=v);
+    r('btnsKing',  bultoKi, v=>bultoKi=v);
+  }
+
+  function updSuma() {
+    const s=(parseFloat(document.getElementById('pctTwin').value)||0)
+           +(parseFloat(document.getElementById('pctQueen').value)||0)
+           +(parseFloat(document.getElementById('pctKing').value)||0);
+    const el=document.getElementById('sumaPct');
+    el.textContent='Suma: '+Math.round(s*10)/10+'%';
+    el.className='suma-pct '+(Math.round(s)===100?'suma-ok':'suma-err');
+  }
+
+  function addRoll(col='',kg='') {
+    rc++;
+    const id=rc, c=document.getElementById('rollsCont');
+    const d=document.createElement('div');
+    d.className='roll-row'; d.id='r'+id;
+    d.innerHTML=`<input type="text" placeholder="Ej: Gris claro" value="${col}">
+      <input type="number" placeholder="Ej: 2079.4" min="0" step="0.1" value="${kg}">
+      <button class="btn-remove" onclick="rmRoll(${id})" title="Eliminar">✕</button>`;
+    c.appendChild(d);
+  }
+
+  function rmRoll(id){ const e=document.getElementById('r'+id); if(e)e.remove(); }
+  function g(id){ return parseFloat(document.getElementById(id).value)||0; }
+  function flr(n,m){ return Math.floor(n/m)*m; }
+
+  function calcular() {
+    const pT=g('pctTwin'),pQ=g('pctQueen'),pK=g('pctKing');
+    const err=document.getElementById('errPct');
+    if(Math.round(pT+pQ+pK)!==100){ err.style.display='block'; return; }
+    err.style.display='none';
+
+    const pm=g('pesoM2'),aw=g('anchoTela'),mr=g('merma')/100;
+    const wT=g('twinL')*aw*pm/1000, wQ=g('queenL')*aw*pm/1000, wK=g('kingL')*aw*pm/1000;
+    const aT=(pT/100)*wT, aQ=(pQ/100)*wQ, aK=(pK/100)*wK, aS=aT+aQ+aK;
+    const adjT=aT/aS, adjQ=aQ/aS, adjK=aK/aS;
+
+    const rows=document.querySelectorAll('#rollsCont .roll-row');
+    const tbody=document.getElementById('resTbody');
+    tbody.innerHTML='';
+    let sTw=0,sQu=0,sKi=0;
+
+    rows.forEach(row=>{
+      const inp=row.querySelectorAll('input');
+      const col=inp[0].value.trim()||'(sin nombre)';
+      const kg=parseFloat(inp[1].value)||0;
+      const tw=flr(Math.floor(kg*adjT/wT*(1-mr)),bultoTw);
+      const qu=flr(Math.floor(kg*adjQ/wQ*(1-mr)),bultoQu);
+      const ki=flr(Math.floor(kg*adjK/wK*(1-mr)),bultoKi);
+      sTw+=tw; sQu+=qu; sKi+=ki;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><strong>${col}</strong></td>
+        <td>${kg.toFixed(1)}</td>
+        <td>${tw+qu+ki}</td>
+        <td>${tw}<span class="sub">${tw/bultoTw} bultos</span></td>
+        <td>${qu}<span class="sub">${qu/bultoQu} bultos</span></td>
+        <td>${ki}<span class="sub">${ki/bultoKi} bultos</span></td>`;
+      tbody.appendChild(tr);
+    });
+
+    const tot=document.createElement('tr');
+    tot.className='total-row';
+    tot.innerHTML=`<td colspan="2">TOTAL</td>
+      <td>${sTw+sQu+sKi}</td>
+      <td>${sTw}<span class="sub">${sTw/bultoTw} bultos</span></td>
+      <td>${sQu}<span class="sub">${sQu/bultoQu} bultos</span></td>
+      <td>${sKi}<span class="sub">${sKi/bultoKi} bultos</span></td>`;
+    tbody.appendChild(tot);
+
+    document.getElementById('totTw').textContent=sTw;
+    document.getElementById('totQu').textContent=sQu;
+    document.getElementById('totKi').textContent=sKi;
+    document.getElementById('totGen').textContent=sTw+sQu+sKi;
+    const res=document.getElementById('results');
+    res.classList.add('visible');
+    res.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  buildBtns(); updSuma(); addRoll(); addRoll();
+</script>
+</body>
+</html>
